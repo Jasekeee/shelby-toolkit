@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shelby Storage Dashboard — Community Explorer</title>
+<meta name="description" content="Open-source community dashboard for exploring Shelby Protocol storage accounts on Aptos. View blobs, monitor expirations, analyze usage.">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#09090b;--bg-card:#18181b;--bg-card-hover:#1f1f23;--bg-input:#27272a;
+--border:#2e2e33;--border-hover:#3f3f46;
+--text:#fafafa;--text-muted:#a1a1aa;--text-dim:#71717a;
+--accent:#6d5dfc;--accent-glow:#6d5dfc33;--accent-light:#8b7ffd;
+--green:#22c55e;--green-bg:#22c55e15;--green-border:#22c55e40;
+--amber:#f59e0b;--amber-bg:#f59e0b15;--amber-border:#f59e0b40;
+--red:#ef4444;--red-bg:#ef444415;--red-border:#ef444440;
+--blue:#3b82f6;--blue-bg:#3b82f615;
+--radius:10px;--radius-lg:16px;
+}
+html{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+body{min-height:100vh}
+.mono{font-family:'JetBrains Mono',monospace}
+
+.app{max-width:1080px;margin:0 auto;padding:2rem 1.5rem 4rem}
+
+header{text-align:center;padding:3rem 0 2rem}
+.logo{display:inline-flex;align-items:center;gap:10px;margin-bottom:1rem}
+.logo-icon{width:40px;height:40px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#fff;box-shadow:0 0 30px var(--accent-glow)}
+.logo-text{font-size:22px;font-weight:600;letter-spacing:-0.5px}
+.logo-text span{color:var(--accent-light)}
+header p{color:var(--text-muted);font-size:14px;max-width:500px;margin:0 auto;line-height:1.6}
+.badge{display:inline-block;font-size:11px;font-weight:500;color:var(--accent-light);background:var(--accent-glow);border:1px solid #6d5dfc30;padding:3px 10px;border-radius:20px;margin-bottom:12px}
+
+.search-section{margin:2rem auto;max-width:640px}
+.search-box{display:flex;gap:8px}
+.search-input{flex:1;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;color:var(--text);font-size:14px;font-family:'JetBrains Mono',monospace;outline:none;transition:border-color .2s}
+.search-input:focus{border-color:var(--accent)}
+.search-input::placeholder{color:var(--text-dim)}
+.search-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:0 24px;font-size:14px;font-weight:500;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .2s;white-space:nowrap}
+.search-btn:hover{background:var(--accent-light);box-shadow:0 0 20px var(--accent-glow)}
+.search-btn:disabled{opacity:.5;cursor:not-allowed}
+.search-hint{font-size:12px;color:var(--text-dim);margin-top:8px;text-align:center}
+.search-hint a{color:var(--accent-light);text-decoration:none}
+
+.network-toggle{display:flex;justify-content:center;gap:6px;margin-bottom:1.5rem}
+.net-btn{background:transparent;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .2s}
+.net-btn.active{background:var(--accent-glow);border-color:var(--accent);color:var(--accent-light)}
+.net-btn:hover{border-color:var(--accent)}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:2rem 0}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px}
+.stat-label{font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.stat-value{font-size:28px;font-weight:600;letter-spacing:-1px}
+.stat-sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+.stat-card.accent{border-color:#6d5dfc40;background:linear-gradient(135deg,#6d5dfc08,transparent)}
+.stat-card.green .stat-value{color:var(--green)}
+.stat-card.amber .stat-value{color:var(--amber)}
+
+.section-title{font-size:16px;font-weight:600;margin:2.5rem 0 1rem;display:flex;align-items:center;gap:8px}
+.section-title .dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+
+.blobs-table{width:100%;border-collapse:collapse}
+.blobs-table thead{position:sticky;top:0;z-index:1}
+.blobs-table th{text-align:left;font-size:11px;font-weight:500;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;background:var(--bg);border-bottom:1px solid var(--border)}
+.blobs-table td{padding:12px;font-size:13px;border-bottom:1px solid #ffffff08;vertical-align:middle}
+.blobs-table tr:hover td{background:var(--bg-card)}
+.blob-name{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);font-weight:500}
+.blob-size{color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:12px}
+.blob-expiry{font-size:12px}
+.expiry-ok{color:var(--green)}
+.expiry-warn{color:var(--amber)}
+.expiry-danger{color:var(--red)}
+.blob-tx{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent-light);text-decoration:none}
+.blob-tx:hover{text-decoration:underline}
+.blob-type-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.type-doc{background:#3b82f620;color:#60a5fa;border:1px solid #3b82f630}
+.type-data{background:#22c55e20;color:#4ade80;border:1px solid #22c55e30}
+.type-media{background:#f59e0b20;color:#fbbf24;border:1px solid #f59e0b30}
+.type-bin{background:#a855f720;color:#c084fc;border:1px solid #a855f730}
+.type-code{background:#06b6d420;color:#22d3ee;border:1px solid #06b6d430}
+
+.expiry-chart{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin:1rem 0}
+.chart-bar-row{display:flex;align-items:center;gap:12px;margin:8px 0}
+.chart-label{font-size:11px;color:var(--text-muted);width:80px;text-align:right;font-family:'JetBrains Mono',monospace;flex-shrink:0}
+.chart-bar-bg{flex:1;height:28px;background:var(--bg-input);border-radius:6px;overflow:hidden;position:relative}
+.chart-bar-fill{height:100%;border-radius:6px;transition:width .6s ease;display:flex;align-items:center;padding-left:10px}
+.chart-bar-fill span{font-size:10px;font-weight:600;color:#fff;white-space:nowrap}
+.bar-green{background:linear-gradient(90deg,#22c55e,#16a34a)}
+.bar-amber{background:linear-gradient(90deg,#f59e0b,#d97706)}
+.bar-red{background:linear-gradient(90deg,#ef4444,#dc2626)}
+.bar-blue{background:linear-gradient(90deg,#6d5dfc,#4f46e5)}
+
+.empty-state{text-align:center;padding:4rem 2rem;color:var(--text-dim)}
+.empty-state h3{font-size:18px;color:var(--text-muted);margin-bottom:8px}
+
+.loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:3rem;color:var(--text-muted)}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.error-msg{text-align:center;padding:2rem;color:var(--red);font-size:14px}
+
+.footer{text-align:center;margin-top:4rem;padding-top:2rem;border-top:1px solid var(--border)}
+.footer p{font-size:12px;color:var(--text-dim);line-height:1.8}
+.footer a{color:var(--accent-light);text-decoration:none}
+.footer a:hover{text-decoration:underline}
+
+.links-row{display:flex;justify-content:center;gap:6px;margin-top:8px;flex-wrap:wrap}
+.link-pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted);background:var(--bg-card);border:1px solid var(--border);padding:4px 10px;border-radius:20px;text-decoration:none;transition:all .2s}
+.link-pill:hover{border-color:var(--accent);color:var(--accent-light)}
+
+@media(max-width:768px){
+.stats{grid-template-columns:repeat(2,1fr)}
+.search-box{flex-direction:column}
+.search-btn{padding:12px}
+.blobs-table{font-size:12px}
+.blobs-table th:nth-child(4),.blobs-table td:nth-child(4){display:none}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+<header>
+  <div class="badge">community tool · open source</div>
+  <div class="logo">
+    <div class="logo-icon">S</div>
+    <div class="logo-text">Shelby <span>Dashboard</span></div>
+  </div>
+  <p>Explore any Shelby Protocol storage account. View blobs, monitor expirations, analyze usage — all on-chain data, verified.</p>
+</header>
+
+<div class="network-toggle">
+  <button class="net-btn active" onclick="setNetwork('shelbynet')">shelbynet</button>
+  <button class="net-btn" onclick="setNetwork('testnet')">testnet</button>
+</div>
+
+<div class="search-section">
+  <div class="search-box">
+    <input class="search-input mono" id="address-input" placeholder="0x... enter Shelby account address" spellcheck="false">
+    <button class="search-btn" id="search-btn" onclick="loadAccount()">Explore</button>
+  </div>
+  <p class="search-hint">Try the author's account: <a href="#" onclick="document.getElementById('address-input').value='0xaad2c3dc70720e00265a24281c3b2be72ed6fa04dfd267df2faca8b0e9d1d8c9';loadAccount();return false;">0xaad2c3...d8c9</a></p>
+</div>
+
+<div id="content"></div>
+
+<footer>
+  <p>Built by <a href="https://github.com/Jasekeee" target="_blank">Jasekeee</a> · Early Access participant since May 2026</p>
+  <p>Data sourced directly from Shelby Protocol on-chain via Aptos APIs</p>
+  <div class="links-row">
+    <a class="link-pill" href="https://github.com/Jasekeee/shelby-toolkit" target="_blank">GitHub</a>
+    <a class="link-pill" href="https://docs.shelby.xyz" target="_blank">Shelby Docs</a>
+    <a class="link-pill" href="https://explorer.shelby.xyz" target="_blank">Official Explorer</a>
+    <a class="link-pill" href="https://shelby.xyz" target="_blank">shelby.xyz</a>
+  </div>
+</footer>
+</div>
+
+<script>
+let currentNetwork = 'shelbynet';
+const SHELBY_CONTRACT = '0xc63d6a5efb0080a6029403131715bd4971e1149f7cc099aac69bb0069b3ddbf5';
+
+const NETWORKS = {
+  shelbynet: {
+    aptos: 'https://api.shelbynet.shelby.xyz/v1',
+    indexer: 'https://api.shelbynet.shelby.xyz/v1/graphql',
+    explorer: 'https://explorer.shelby.xyz/shelbynet',
+    aptosExplorer: 'https://explorer.aptoslabs.com/txn/{tx}?network=shelbynet'
+  },
+  testnet: {
+    aptos: 'https://api.testnet.aptoslabs.com/v1',
+    indexer: 'https://api.testnet.aptoslabs.com/v1/graphql',
+    explorer: 'https://explorer.shelby.xyz/testnet',
+    aptosExplorer: 'https://explorer.aptoslabs.com/txn/{tx}?network=testnet'
+  }
+};
+
+function setNetwork(net) {
+  currentNetwork = net;
+  document.querySelectorAll('.net-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function getFileType(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  const types = {
+    doc: ['md','txt','pdf','doc','docx','README'],
+    data: ['csv','json','xml','yaml','yml','tsv','parquet'],
+    media: ['jpg','jpeg','png','gif','webp','svg','mp4','mp3','wav','webm'],
+    code: ['js','ts','py','rs','go','sol','move','sh','bash','html','css'],
+    bin: ['bin','wasm','tar','gz','zip']
+  };
+  for (const [type, exts] of Object.entries(types)) {
+    if (exts.includes(ext)) return type;
+  }
+  return 'bin';
+}
+
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function daysUntil(timestamp) {
+  const now = Date.now();
+  const expiry = timestamp;
+  const diff = expiry - now;
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
+
+function expiryClass(days) {
+  if (days <= 3) return 'expiry-danger';
+  if (days <= 14) return 'expiry-warn';
+  return 'expiry-ok';
+}
+
+function truncateHash(hash) {
+  if (!hash) return '';
+  return hash.substring(0, 10) + '...' + hash.substring(hash.length - 6);
+}
+
+async function fetchAccountResources(address) {
+  const net = NETWORKS[currentNetwork];
+  const url = `${net.aptos}/accounts/${address}/resources?limit=999`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Account not found (${res.status})`);
+  return await res.json();
+}
+
+async function fetchAccountEvents(address) {
+  const net = NETWORKS[currentNetwork];
+  const url = `${net.aptos}/accounts/${address}/events?limit=100`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    return await res.json();
+  } catch { return []; }
+}
+
+async function fetchAccountTransactions(address) {
+  const net = NETWORKS[currentNetwork];
+  const url = `${net.aptos}/accounts/${address}/transactions?limit=50`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    return await res.json();
+  } catch { return []; }
+}
+
+function parseBlobsFromResources(resources) {
+  const blobs = [];
+  for (const res of resources) {
+    if (res.type && res.type.includes('blob')) {
+      try {
+        const data = res.data;
+        if (data && data.blobs) {
+          for (const [name, info] of Object.entries(data.blobs)) {
+            blobs.push({
+              name: name,
+              size: parseInt(info.size || info.content_length || 0),
+              expiry: parseInt(info.expiration_timestamp || info.expiry || 0) / 1000,
+              status: info.status || 'active'
+            });
+          }
+        }
+      } catch {}
+    }
+  }
+  return blobs;
+}
+
+function parseBlobsFromTransactions(txns) {
+  const blobs = [];
+  const seen = new Set();
+  for (const tx of txns) {
+    if (!tx.payload || !tx.payload.function) continue;
+    const fn = tx.payload.function;
+    if (fn.includes('upload') || fn.includes('store') || fn.includes('register_blob') || fn.includes('create_blob')) {
+      const args = tx.payload.arguments || [];
+      const name = args[0] || `blob-${tx.hash?.substring(0,8)}`;
+      if (seen.has(name)) continue;
+      seen.add(name);
+      
+      let size = 0;
+      let expiry = Date.now() + 30 * 24 * 60 * 60 * 1000;
+      
+      if (args[1]) {
+        const parsedSize = parseInt(args[1]);
+        if (!isNaN(parsedSize) && parsedSize > 0 && parsedSize < 1e12) size = parsedSize;
+      }
+      if (args[2]) {
+        const parsedExp = parseInt(args[2]);
+        if (!isNaN(parsedExp) && parsedExp > 1e12) expiry = parsedExp / 1000;
+      }
+      
+      blobs.push({
+        name: typeof name === 'string' ? name : `blob-${tx.hash?.substring(0,8)}`,
+        size: size,
+        expiry: expiry,
+        status: tx.success !== false ? 'active' : 'failed',
+        tx: tx.hash,
+        timestamp: parseInt(tx.timestamp || 0) / 1000,
+        version: tx.version
+      });
+    }
+  }
+  return blobs;
+}
+
+function renderStats(blobs, address) {
+  const totalSize = blobs.reduce((a, b) => a + (b.size || 0), 0);
+  const activeBlobs = blobs.filter(b => b.status === 'active');
+  const expiringBlobs = blobs.filter(b => {
+    const days = daysUntil(b.expiry);
+    return days > 0 && days <= 7;
+  });
+  const avgUploadTime = blobs.length > 0 ? (blobs.reduce((a, b) => a + (b.uploadTime || 0), 0) / blobs.length) : 0;
+  
+  return `
+    <div class="stats">
+      <div class="stat-card accent">
+        <div class="stat-label">Total blobs</div>
+        <div class="stat-value">${blobs.length}</div>
+        <div class="stat-sub">${activeBlobs.length} active</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total size</div>
+        <div class="stat-value">${formatBytes(totalSize)}</div>
+        <div class="stat-sub">across all blobs</div>
+      </div>
+      <div class="stat-card ${expiringBlobs.length > 0 ? 'amber' : 'green'}">
+        <div class="stat-label">Expiring soon</div>
+        <div class="stat-value">${expiringBlobs.length}</div>
+        <div class="stat-sub">within 7 days</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Network</div>
+        <div class="stat-value" style="font-size:18px">${currentNetwork}</div>
+        <div class="stat-sub"><a href="${NETWORKS[currentNetwork].explorer}/account/${address}" target="_blank" style="color:var(--accent-light);text-decoration:none;font-size:11px">View in explorer ↗</a></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderExpiryChart(blobs) {
+  const buckets = { 'Expired': 0, '< 3 days': 0, '3-7 days': 0, '7-14 days': 0, '14-30 days': 0, '30+ days': 0 };
+  for (const b of blobs) {
+    const d = daysUntil(b.expiry);
+    if (d <= 0) buckets['Expired']++;
+    else if (d <= 3) buckets['< 3 days']++;
+    else if (d <= 7) buckets['3-7 days']++;
+    else if (d <= 14) buckets['7-14 days']++;
+    else if (d <= 30) buckets['14-30 days']++;
+    else buckets['30+ days']++;
+  }
+  
+  const max = Math.max(...Object.values(buckets), 1);
+  const colors = {
+    'Expired': 'bar-red', '< 3 days': 'bar-red', '3-7 days': 'bar-amber',
+    '7-14 days': 'bar-amber', '14-30 days': 'bar-blue', '30+ days': 'bar-green'
+  };
+  
+  let bars = '';
+  for (const [label, count] of Object.entries(buckets)) {
+    const pct = Math.max((count / max) * 100, count > 0 ? 8 : 0);
+    bars += `
+      <div class="chart-bar-row">
+        <div class="chart-label">${label}</div>
+        <div class="chart-bar-bg">
+          <div class="chart-bar-fill ${colors[label]}" style="width:${pct}%">
+            ${count > 0 ? `<span>${count} blob${count > 1 ? 's' : ''}</span>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  return `
+    <div class="section-title"><div class="dot"></div>Expiration timeline</div>
+    <div class="expiry-chart">${bars}</div>
+  `;
+}
+
+function renderBlobsTable(blobs) {
+  if (blobs.length === 0) return '';
+  
+  const sorted = [...blobs].sort((a, b) => (b.timestamp || b.expiry) - (a.timestamp || a.expiry));
+  
+  let rows = '';
+  for (const b of sorted) {
+    const type = getFileType(b.name);
+    const typeClass = `type-${type}`;
+    const days = daysUntil(b.expiry);
+    const expiryText = days <= 0 ? 'Expired' : `${days}d left`;
+    const expClass = expiryClass(days);
+    const txLink = b.tx ? `<a class="blob-tx" href="${NETWORKS[currentNetwork].aptosExplorer.replace('{tx}', b.tx)}" target="_blank">${truncateHash(b.tx)}</a>` : '—';
+    
+    rows += `
+      <tr>
+        <td><span class="blob-name">${b.name}</span></td>
+        <td><span class="blob-type-badge ${typeClass}">${type}</span></td>
+        <td><span class="blob-size">${b.size > 0 ? formatBytes(b.size) : '—'}</span></td>
+        <td><span class="blob-expiry ${expClass}">${expiryText}</span></td>
+        <td>${txLink}</td>
+      </tr>
+    `;
+  }
+  
+  return `
+    <div class="section-title"><div class="dot"></div>Stored blobs</div>
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-lg)">
+      <table class="blobs-table">
+        <thead>
+          <tr><th>Name</th><th>Type</th><th>Size</th><th>Expires</th><th>Transaction</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderTypeBreakdown(blobs) {
+  const types = {};
+  for (const b of blobs) {
+    const t = getFileType(b.name);
+    if (!types[t]) types[t] = { count: 0, size: 0 };
+    types[t].count++;
+    types[t].size += b.size || 0;
+  }
+  
+  const max = Math.max(...Object.values(types).map(t => t.count), 1);
+  let bars = '';
+  const colors = { doc: 'bar-blue', data: 'bar-green', media: 'bar-amber', code: 'bar-blue', bin: 'bar-red' };
+  
+  for (const [type, info] of Object.entries(types).sort((a, b) => b[1].count - a[1].count)) {
+    const pct = Math.max((info.count / max) * 100, 8);
+    bars += `
+      <div class="chart-bar-row">
+        <div class="chart-label">${type}</div>
+        <div class="chart-bar-bg">
+          <div class="chart-bar-fill ${colors[type] || 'bar-blue'}" style="width:${pct}%">
+            <span>${info.count} · ${formatBytes(info.size)}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  
+  return `
+    <div class="section-title"><div class="dot"></div>Storage by type</div>
+    <div class="expiry-chart">${bars}</div>
+  `;
+}
+
+async function loadAccount() {
+  const input = document.getElementById('address-input');
+  const content = document.getElementById('content');
+  const btn = document.getElementById('search-btn');
+  const address = input.value.trim();
+  
+  if (!address || !address.startsWith('0x')) {
+    content.innerHTML = '<div class="error-msg">Enter a valid Shelby account address starting with 0x</div>';
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.textContent = 'Loading...';
+  content.innerHTML = '<div class="loading"><div class="spinner"></div>Fetching on-chain data...</div>';
+  
+  try {
+    const [resources, transactions] = await Promise.all([
+      fetchAccountResources(address),
+      fetchAccountTransactions(address)
+    ]);
+    
+    let blobs = parseBlobsFromResources(resources);
+    
+    if (blobs.length === 0) {
+      blobs = parseBlobsFromTransactions(transactions);
+    }
+    
+    if (blobs.length === 0 && transactions.length > 0) {
+      for (const tx of transactions) {
+        if (tx.payload && tx.payload.function && 
+            (tx.payload.function.includes(SHELBY_CONTRACT) || tx.payload.function.includes('shelby'))) {
+          const args = tx.payload.arguments || [];
+          blobs.push({
+            name: (args[0] && typeof args[0] === 'string' && args[0].length < 200) ? args[0] : `tx-${tx.hash?.substring(0,8)}`,
+            size: parseInt(args[1]) || 0,
+            expiry: (parseInt(args[2]) || (Date.now() + 30*86400000)*1000) / 1000,
+            status: tx.success !== false ? 'active' : 'failed',
+            tx: tx.hash,
+            timestamp: parseInt(tx.timestamp || 0) / 1000,
+            version: tx.version
+          });
+        }
+      }
+    }
+    
+    if (blobs.length === 0) {
+      content.innerHTML = `
+        ${renderStats([], address)}
+        <div class="empty-state">
+          <h3>No blobs found</h3>
+          <p>This account has ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''} but no Shelby blob data detected.<br>
+          The account may use a different contract interface or blobs may have expired.</p>
+          <p style="margin-top:12px"><a href="${NETWORKS[currentNetwork].explorer}/account/${address}" target="_blank" style="color:var(--accent-light)">Check in Shelby Explorer ↗</a></p>
+        </div>
+      `;
+    } else {
+      content.innerHTML = 
+        renderStats(blobs, address) +
+        renderExpiryChart(blobs) +
+        renderTypeBreakdown(blobs) +
+        renderBlobsTable(blobs);
+    }
+  } catch (err) {
+    content.innerHTML = `<div class="error-msg">Error: ${err.message}<br><small style="color:var(--text-dim)">Make sure the address exists on ${currentNetwork}</small></div>`;
+  }
+  
+  btn.disabled = false;
+  btn.textContent = 'Explore';
+}
+
+document.getElementById('address-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') loadAccount();
+});
+</script>
+</body>
+</html>
