@@ -181,7 +181,7 @@ const N={shelbynet:{a:'https://api.shelbynet.shelby.xyz/v1',e:'https://explorer.
 function setNet(n,el){net=n;document.querySelectorAll('.net-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active')}
 function ft(n){const e=n.split('.').pop().toLowerCase();const m={doc:['md','txt','pdf','doc','docx'],data:['csv','json','xml','yaml','yml'],media:['jpg','jpeg','png','gif','webp','svg','mp4'],code:['js','ts','py','rs','go','sol','move','sh','html'],bin:['bin','wasm','tar','gz','zip']};for(const[t,x]of Object.entries(m))if(x.includes(e))return t;return'bin'}
 function fb(b){if(!b||b===0)return'—';const k=1024,s=['B','KB','MB','GB'];const i=Math.floor(Math.log(b)/Math.log(k));return parseFloat((b/Math.pow(k,i)).toFixed(1))+' '+s[i]}
-function du(ts){return Math.ceil((ts-Date.now())/864e5)}
+function du(ts){const t=ts>1e15?ts/1000:ts>1e12?ts:ts*1000;return Math.ceil((t-Date.now())/864e5)}
 function ec(d){return d<=3?'expiry-danger':d<=14?'expiry-warn':'expiry-ok'}
 function th(h){return h?h.slice(0,10)+'···'+h.slice(-6):''}
 async function fr(a){const r=await fetch(`${N[net].a}/accounts/${a}/resources?limit=999`);if(!r.ok)throw new Error(`Account not found (${r.status})`);return r.json()}
