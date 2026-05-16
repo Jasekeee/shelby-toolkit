@@ -3,532 +3,199 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shelby Storage Dashboard — Community Explorer</title>
-<meta name="description" content="Open-source community dashboard for exploring Shelby Protocol storage accounts on Aptos. View blobs, monitor expirations, analyze usage.">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<title>Shelby Dashboard — Community Storage Explorer</title>
+<meta name="description" content="Open-source community dashboard for Shelby Protocol on Aptos. Explore blobs, monitor expirations, verify on-chain.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
---bg:#09090b;--bg-card:#18181b;--bg-card-hover:#1f1f23;--bg-input:#27272a;
---border:#2e2e33;--border-hover:#3f3f46;
---text:#fafafa;--text-muted:#a1a1aa;--text-dim:#71717a;
---accent:#6d5dfc;--accent-glow:#6d5dfc33;--accent-light:#8b7ffd;
---green:#22c55e;--green-bg:#22c55e15;--green-border:#22c55e40;
---amber:#f59e0b;--amber-bg:#f59e0b15;--amber-border:#f59e0b40;
---red:#ef4444;--red-bg:#ef444415;--red-border:#ef444440;
---blue:#3b82f6;--blue-bg:#3b82f615;
---radius:10px;--radius-lg:16px;
+--bg:#050510;--bg-card:rgba(15,15,35,0.6);
+--glass:rgba(255,255,255,0.03);--glass-border:rgba(255,255,255,0.06);--glass-hover:rgba(255,255,255,0.06);
+--text:#e2e2f0;--text-muted:#8888a8;--text-dim:#55557a;
+--accent:#7c5dfa;--accent2:#00d4aa;--accent3:#5d8dfa;
+--glow-purple:rgba(124,93,250,0.15);--glow-green:rgba(0,212,170,0.15);
+--green:#00d4aa;--amber:#ffb020;--red:#ff4466;--blue:#5d8dfa;
+--radius:12px;--radius-lg:20px;
 }
-html{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
-body{min-height:100vh}
-.mono{font-family:'JetBrains Mono',monospace}
+html{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body{min-height:100vh;position:relative}
 
-.app{max-width:1080px;margin:0 auto;padding:2rem 1.5rem 4rem}
+.bg-grid{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;
+background-image:linear-gradient(rgba(124,93,250,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(124,93,250,0.03) 1px,transparent 1px);
+background-size:60px 60px}
+.bg-orb{position:fixed;border-radius:50%;filter:blur(120px);z-index:0;pointer-events:none;animation:orbFloat 20s ease-in-out infinite}
+.bg-orb-1{width:600px;height:600px;background:radial-gradient(circle,rgba(124,93,250,0.12),transparent 70%);top:-200px;left:-100px}
+.bg-orb-2{width:500px;height:500px;background:radial-gradient(circle,rgba(0,212,170,0.08),transparent 70%);bottom:-150px;right:-100px;animation-delay:-10s}
+.bg-orb-3{width:400px;height:400px;background:radial-gradient(circle,rgba(93,141,250,0.08),transparent 70%);top:40%;left:50%;animation-delay:-5s}
+@keyframes orbFloat{0%,100%{transform:translate(0,0)}25%{transform:translate(30px,-20px)}50%{transform:translate(-20px,30px)}75%{transform:translate(20px,20px)}}
 
-header{text-align:center;padding:3rem 0 2rem}
-.logo{display:inline-flex;align-items:center;gap:10px;margin-bottom:1rem}
-.logo-icon{width:40px;height:40px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#fff;box-shadow:0 0 30px var(--accent-glow)}
-.logo-text{font-size:22px;font-weight:600;letter-spacing:-0.5px}
-.logo-text span{color:var(--accent-light)}
-header p{color:var(--text-muted);font-size:14px;max-width:500px;margin:0 auto;line-height:1.6}
-.badge{display:inline-block;font-size:11px;font-weight:500;color:var(--accent-light);background:var(--accent-glow);border:1px solid #6d5dfc30;padding:3px 10px;border-radius:20px;margin-bottom:12px}
+.noise{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;opacity:0.015;
+background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 
-.search-section{margin:2rem auto;max-width:640px}
-.search-box{display:flex;gap:8px}
-.search-input{flex:1;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;color:var(--text);font-size:14px;font-family:'JetBrains Mono',monospace;outline:none;transition:border-color .2s}
-.search-input:focus{border-color:var(--accent)}
+.app{max-width:1120px;margin:0 auto;padding:2rem 1.5rem 4rem;position:relative;z-index:2}
+
+header{text-align:center;padding:4rem 0 2rem}
+.badge-row{display:flex;justify-content:center;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap}
+.badge{font-size:11px;font-weight:500;padding:5px 14px;border-radius:30px;letter-spacing:.3px;background:var(--glass);border:1px solid var(--glass-border);color:var(--text-muted);backdrop-filter:blur(10px)}
+.badge-accent{background:rgba(124,93,250,0.1);border-color:rgba(124,93,250,0.2);color:var(--accent)}
+.logo{display:inline-flex;align-items:center;gap:14px;margin-bottom:1.2rem}
+.logo-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 0 40px var(--glow-purple),0 0 80px rgba(124,93,250,0.1);position:relative}
+.logo-icon::after{content:'';position:absolute;inset:-2px;border-radius:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));z-index:-1;opacity:.3;filter:blur(8px)}
+.logo-text{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;letter-spacing:-1px}
+.logo-text span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+header p{color:var(--text-muted);font-size:15px;max-width:480px;margin:0 auto;line-height:1.7;font-weight:300}
+
+.glass{background:var(--bg-card);backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:var(--radius-lg);transition:all .3s}
+.glass:hover{border-color:rgba(255,255,255,0.1)}
+.glass-glow{box-shadow:0 0 40px rgba(124,93,250,0.05),inset 0 1px 0 rgba(255,255,255,0.04)}
+
+.network-toggle{display:flex;justify-content:center;gap:4px;margin-bottom:2rem;background:var(--glass);border:1px solid var(--glass-border);border-radius:30px;padding:4px;width:fit-content;margin-left:auto;margin-right:auto;backdrop-filter:blur(10px)}
+.net-btn{background:transparent;border:none;color:var(--text-dim);padding:8px 20px;border-radius:26px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .3s}
+.net-btn.active{background:linear-gradient(135deg,var(--accent),var(--accent3));color:#fff;box-shadow:0 0 20px var(--glow-purple)}
+
+.search-section{margin:0 auto 2.5rem;max-width:680px}
+.search-box{display:flex;gap:8px;padding:6px;border-radius:16px;background:var(--glass);border:1px solid var(--glass-border);backdrop-filter:blur(20px);transition:border-color .3s,box-shadow .3s}
+.search-box:focus-within{border-color:rgba(124,93,250,0.4);box-shadow:0 0 30px var(--glow-purple)}
+.search-input{flex:1;background:transparent;border:none;padding:12px 16px;color:var(--text);font-size:13px;font-family:'Space Mono',monospace;outline:none}
 .search-input::placeholder{color:var(--text-dim)}
-.search-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:0 24px;font-size:14px;font-weight:500;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .2s;white-space:nowrap}
-.search-btn:hover{background:var(--accent-light);box-shadow:0 0 20px var(--accent-glow)}
-.search-btn:disabled{opacity:.5;cursor:not-allowed}
-.search-hint{font-size:12px;color:var(--text-dim);margin-top:8px;text-align:center}
-.search-hint a{color:var(--accent-light);text-decoration:none}
+.search-btn{background:linear-gradient(135deg,var(--accent),var(--accent3));color:#fff;border:none;border-radius:var(--radius);padding:0 28px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Syne',sans-serif;transition:all .3s}
+.search-btn:hover{box-shadow:0 0 30px var(--glow-purple);transform:translateY(-1px)}
+.search-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.search-hint{font-size:12px;color:var(--text-dim);margin-top:10px;text-align:center}
+.search-hint a{color:var(--accent);text-decoration:none;font-family:'Space Mono',monospace;font-size:11px}
 
-.network-toggle{display:flex;justify-content:center;gap:6px;margin-bottom:1.5rem}
-.net-btn{background:transparent;border:1px solid var(--border);color:var(--text-muted);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Outfit',sans-serif;transition:all .2s}
-.net-btn.active{background:var(--accent-glow);border-color:var(--accent);color:var(--accent-light)}
-.net-btn:hover{border-color:var(--accent)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:2rem 0}
+.stat-card{padding:24px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(124,93,250,0.3),transparent)}
+.stat-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:12px}
+.stat-icon-purple{background:rgba(124,93,250,0.1);color:var(--accent)}
+.stat-icon-green{background:rgba(0,212,170,0.1);color:var(--green)}
+.stat-icon-amber{background:rgba(255,176,32,0.1);color:var(--amber)}
+.stat-icon-blue{background:rgba(93,141,250,0.1);color:var(--blue)}
+.stat-label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-weight:500}
+.stat-value{font-family:'Syne',sans-serif;font-size:32px;font-weight:700;letter-spacing:-1.5px;line-height:1}
+.stat-value-purple{color:var(--accent)}
+.stat-value-green{color:var(--green)}
+.stat-value-amber{color:var(--amber)}
+.stat-sub{font-size:11px;color:var(--text-dim);margin-top:6px}
+.stat-sub a{color:var(--accent);text-decoration:none}
 
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:2rem 0}
-.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px}
-.stat-label{font-size:12px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
-.stat-value{font-size:28px;font-weight:600;letter-spacing:-1px}
-.stat-sub{font-size:11px;color:var(--text-muted);margin-top:4px}
-.stat-card.accent{border-color:#6d5dfc40;background:linear-gradient(135deg,#6d5dfc08,transparent)}
-.stat-card.green .stat-value{color:var(--green)}
-.stat-card.amber .stat-value{color:var(--amber)}
+.section-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:600;margin:3rem 0 1rem;display:flex;align-items:center;gap:10px}
+.section-dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 0 10px var(--glow-purple)}
 
-.section-title{font-size:16px;font-weight:600;margin:2.5rem 0 1rem;display:flex;align-items:center;gap:8px}
-.section-title .dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.chart-container{padding:28px}
+.chart-bar-row{display:flex;align-items:center;gap:14px;margin:10px 0}
+.chart-label{font-size:11px;color:var(--text-dim);width:80px;text-align:right;font-family:'Space Mono',monospace;flex-shrink:0}
+.chart-bar-bg{flex:1;height:32px;background:rgba(255,255,255,0.02);border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.03)}
+.chart-bar-fill{height:100%;border-radius:7px;display:flex;align-items:center;padding-left:12px;transition:width .8s cubic-bezier(0.16,1,0.3,1);position:relative;overflow:hidden}
+.chart-bar-fill::after{content:'';position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,rgba(255,255,255,0.08),transparent);border-radius:7px 7px 0 0}
+.chart-bar-fill span{font-size:11px;font-weight:600;color:#fff;white-space:nowrap;position:relative;z-index:1;text-shadow:0 1px 3px rgba(0,0,0,.3)}
+.bar-green{background:linear-gradient(90deg,#00d4aa,#00b894)}
+.bar-amber{background:linear-gradient(90deg,#ffb020,#e09000)}
+.bar-red{background:linear-gradient(90deg,#ff4466,#e02050)}
+.bar-blue{background:linear-gradient(90deg,#7c5dfa,#5d8dfa)}
 
-.blobs-table{width:100%;border-collapse:collapse}
-.blobs-table thead{position:sticky;top:0;z-index:1}
-.blobs-table th{text-align:left;font-size:11px;font-weight:500;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;background:var(--bg);border-bottom:1px solid var(--border)}
-.blobs-table td{padding:12px;font-size:13px;border-bottom:1px solid #ffffff08;vertical-align:middle}
-.blobs-table tr:hover td{background:var(--bg-card)}
-.blob-name{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text);font-weight:500}
-.blob-size{color:var(--text-muted);font-family:'JetBrains Mono',monospace;font-size:12px}
-.blob-expiry{font-size:12px}
-.expiry-ok{color:var(--green)}
-.expiry-warn{color:var(--amber)}
-.expiry-danger{color:var(--red)}
-.blob-tx{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent-light);text-decoration:none}
-.blob-tx:hover{text-decoration:underline}
-.blob-type-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
-.type-doc{background:#3b82f620;color:#60a5fa;border:1px solid #3b82f630}
-.type-data{background:#22c55e20;color:#4ade80;border:1px solid #22c55e30}
-.type-media{background:#f59e0b20;color:#fbbf24;border:1px solid #f59e0b30}
-.type-bin{background:#a855f720;color:#c084fc;border:1px solid #a855f730}
-.type-code{background:#06b6d420;color:#22d3ee;border:1px solid #06b6d430}
+.table-wrap{overflow-x:auto;border-radius:var(--radius-lg)}
+.blobs-table{width:100%;border-collapse:separate;border-spacing:0}
+.blobs-table thead th{text-align:left;font-size:10px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;padding:14px 16px;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--glass-border)}
+.blobs-table tbody td{padding:14px 16px;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.02);transition:background .2s}
+.blobs-table tbody tr:hover td{background:rgba(124,93,250,0.03)}
+.blobs-table tbody tr:last-child td{border-bottom:none}
+.blob-name{font-family:'Space Mono',monospace;font-size:12px;color:var(--text)}
+.blob-size{color:var(--text-muted);font-family:'Space Mono',monospace;font-size:12px}
+.blob-tx{font-family:'Space Mono',monospace;font-size:11px;color:var(--accent);text-decoration:none}
+.blob-tx:hover{color:var(--accent2)}
+.type-badge{display:inline-block;padding:3px 10px;border-radius:6px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.type-doc{background:rgba(93,141,250,0.1);color:#5d8dfa;border:1px solid rgba(93,141,250,0.15)}
+.type-data{background:rgba(0,212,170,0.1);color:#00d4aa;border:1px solid rgba(0,212,170,0.15)}
+.type-media{background:rgba(255,176,32,0.1);color:#ffb020;border:1px solid rgba(255,176,32,0.15)}
+.type-bin{background:rgba(168,85,247,0.1);color:#c084fc;border:1px solid rgba(168,85,247,0.15)}
+.type-code{background:rgba(0,200,220,0.1);color:#22d3ee;border:1px solid rgba(0,200,220,0.15)}
+.expiry-ok{color:var(--green)}.expiry-warn{color:var(--amber)}.expiry-danger{color:var(--red)}
 
-.expiry-chart{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin:1rem 0}
-.chart-bar-row{display:flex;align-items:center;gap:12px;margin:8px 0}
-.chart-label{font-size:11px;color:var(--text-muted);width:80px;text-align:right;font-family:'JetBrains Mono',monospace;flex-shrink:0}
-.chart-bar-bg{flex:1;height:28px;background:var(--bg-input);border-radius:6px;overflow:hidden;position:relative}
-.chart-bar-fill{height:100%;border-radius:6px;transition:width .6s ease;display:flex;align-items:center;padding-left:10px}
-.chart-bar-fill span{font-size:10px;font-weight:600;color:#fff;white-space:nowrap}
-.bar-green{background:linear-gradient(90deg,#22c55e,#16a34a)}
-.bar-amber{background:linear-gradient(90deg,#f59e0b,#d97706)}
-.bar-red{background:linear-gradient(90deg,#ef4444,#dc2626)}
-.bar-blue{background:linear-gradient(90deg,#6d5dfc,#4f46e5)}
+.empty-state{text-align:center;padding:4rem 2rem}
+.empty-state h3{font-family:'Syne',sans-serif;font-size:20px;color:var(--text-muted);margin-bottom:8px}
+.empty-state p{color:var(--text-dim);font-size:14px;line-height:1.7}
+.empty-state a{color:var(--accent);text-decoration:none}
 
-.empty-state{text-align:center;padding:4rem 2rem;color:var(--text-dim)}
-.empty-state h3{font-size:18px;color:var(--text-muted);margin-bottom:8px}
-
-.loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:3rem;color:var(--text-muted)}
-.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+.loading{display:flex;align-items:center;justify-content:center;gap:12px;padding:4rem;color:var(--text-muted)}
+.spinner{width:24px;height:24px;border:2px solid rgba(124,93,250,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+.error-msg{text-align:center;padding:3rem;color:var(--red);font-size:14px}
 
-.error-msg{text-align:center;padding:2rem;color:var(--red);font-size:14px}
+.footer{text-align:center;margin-top:5rem;padding-top:2rem;border-top:1px solid var(--glass-border)}
+.footer p{font-size:12px;color:var(--text-dim);line-height:2}
+.footer a{color:var(--accent);text-decoration:none}
+.links-row{display:flex;justify-content:center;gap:6px;margin-top:10px;flex-wrap:wrap}
+.link-pill{font-size:11px;color:var(--text-dim);background:var(--glass);border:1px solid var(--glass-border);padding:6px 14px;border-radius:30px;text-decoration:none;transition:all .3s;backdrop-filter:blur(10px)}
+.link-pill:hover{border-color:rgba(124,93,250,0.3);color:var(--accent);box-shadow:0 0 15px var(--glow-purple)}
 
-.footer{text-align:center;margin-top:4rem;padding-top:2rem;border-top:1px solid var(--border)}
-.footer p{font-size:12px;color:var(--text-dim);line-height:1.8}
-.footer a{color:var(--accent-light);text-decoration:none}
-.footer a:hover{text-decoration:underline}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.anim{animation:fadeUp .6s ease-out forwards}
+.d1{animation-delay:.1s;opacity:0}.d2{animation-delay:.2s;opacity:0}.d3{animation-delay:.3s;opacity:0}.d4{animation-delay:.4s;opacity:0}
 
-.links-row{display:flex;justify-content:center;gap:6px;margin-top:8px;flex-wrap:wrap}
-.link-pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted);background:var(--bg-card);border:1px solid var(--border);padding:4px 10px;border-radius:20px;text-decoration:none;transition:all .2s}
-.link-pill:hover{border-color:var(--accent);color:var(--accent-light)}
-
-@media(max-width:768px){
-.stats{grid-template-columns:repeat(2,1fr)}
-.search-box{flex-direction:column}
-.search-btn{padding:12px}
-.blobs-table{font-size:12px}
-.blobs-table th:nth-child(4),.blobs-table td:nth-child(4){display:none}
-}
+@media(max-width:768px){.stats{grid-template-columns:repeat(2,1fr)}.search-box{flex-direction:column}.search-btn{padding:12px}header{padding:2rem 0 1.5rem}.logo-text{font-size:22px}}
+@media(max-width:480px){.stats{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<div class="app" id="app">
-<header>
-  <div class="badge">community tool · open source</div>
-  <div class="logo">
-    <div class="logo-icon">S</div>
-    <div class="logo-text">Shelby <span>Dashboard</span></div>
-  </div>
-  <p>Explore any Shelby Protocol storage account. View blobs, monitor expirations, analyze usage — all on-chain data, verified.</p>
+<div class="bg-grid"></div>
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+<div class="bg-orb bg-orb-3"></div>
+<div class="noise"></div>
+<div class="app">
+<header class="anim">
+  <div class="badge-row"><span class="badge badge-accent">✦ community tool</span><span class="badge">open source</span><span class="badge">on-chain data</span></div>
+  <div class="logo"><div class="logo-icon">S</div><div class="logo-text">Shelby <span>Dashboard</span></div></div>
+  <p>Explore any Shelby Protocol storage account on Aptos. View blobs, monitor expirations, analyze usage — all verified on-chain.</p>
 </header>
-
-<div class="network-toggle">
-  <button class="net-btn active" onclick="setNetwork('shelbynet')">shelbynet</button>
-  <button class="net-btn" onclick="setNetwork('testnet')">testnet</button>
+<div class="network-toggle anim d1">
+  <button class="net-btn active" onclick="setNet('shelbynet',this)">shelbynet</button>
+  <button class="net-btn" onclick="setNet('testnet',this)">testnet</button>
 </div>
-
-<div class="search-section">
+<div class="search-section anim d2">
   <div class="search-box">
-    <input class="search-input mono" id="address-input" placeholder="0x... enter Shelby account address" spellcheck="false">
-    <button class="search-btn" id="search-btn" onclick="loadAccount()">Explore</button>
+    <input class="search-input" id="addr" placeholder="0x...  paste any Shelby account address" spellcheck="false" autocomplete="off">
+    <button class="search-btn" id="sbtn" onclick="go()">Explore</button>
   </div>
-  <p class="search-hint">Try the author's account: <a href="#" onclick="document.getElementById('address-input').value='0xaad2c3dc70720e00265a24281c3b2be72ed6fa04dfd267df2faca8b0e9d1d8c9';loadAccount();return false;">0xaad2c3...d8c9</a></p>
+  <p class="search-hint">Try it → <a href="#" onclick="document.getElementById('addr').value='0xaad2c3dc70720e00265a24281c3b2be72ed6fa04dfd267df2faca8b0e9d1d8c9';go();return false">0xaad2c3...d8c9 (author)</a></p>
 </div>
-
-<div id="content"></div>
-
+<div id="out"></div>
 <footer>
   <p>Built by <a href="https://github.com/Jasekeee" target="_blank">Jasekeee</a> · Early Access participant since May 2026</p>
-  <p>Data sourced directly from Shelby Protocol on-chain via Aptos APIs</p>
+  <p>Powered by Shelby Protocol on Aptos · All data sourced from on-chain APIs</p>
   <div class="links-row">
     <a class="link-pill" href="https://github.com/Jasekeee/shelby-toolkit" target="_blank">GitHub</a>
-    <a class="link-pill" href="https://docs.shelby.xyz" target="_blank">Shelby Docs</a>
-    <a class="link-pill" href="https://explorer.shelby.xyz" target="_blank">Official Explorer</a>
+    <a class="link-pill" href="https://docs.shelby.xyz" target="_blank">Docs</a>
+    <a class="link-pill" href="https://explorer.shelby.xyz" target="_blank">Explorer</a>
     <a class="link-pill" href="https://shelby.xyz" target="_blank">shelby.xyz</a>
   </div>
 </footer>
 </div>
-
 <script>
-let currentNetwork = 'shelbynet';
-const SHELBY_CONTRACT = '0xc63d6a5efb0080a6029403131715bd4971e1149f7cc099aac69bb0069b3ddbf5';
-
-const NETWORKS = {
-  shelbynet: {
-    aptos: 'https://api.shelbynet.shelby.xyz/v1',
-    indexer: 'https://api.shelbynet.shelby.xyz/v1/graphql',
-    explorer: 'https://explorer.shelby.xyz/shelbynet',
-    aptosExplorer: 'https://explorer.aptoslabs.com/txn/{tx}?network=shelbynet'
-  },
-  testnet: {
-    aptos: 'https://api.testnet.aptoslabs.com/v1',
-    indexer: 'https://api.testnet.aptoslabs.com/v1/graphql',
-    explorer: 'https://explorer.shelby.xyz/testnet',
-    aptosExplorer: 'https://explorer.aptoslabs.com/txn/{tx}?network=testnet'
-  }
-};
-
-function setNetwork(net) {
-  currentNetwork = net;
-  document.querySelectorAll('.net-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-}
-
-function getFileType(name) {
-  const ext = name.split('.').pop().toLowerCase();
-  const types = {
-    doc: ['md','txt','pdf','doc','docx','README'],
-    data: ['csv','json','xml','yaml','yml','tsv','parquet'],
-    media: ['jpg','jpeg','png','gif','webp','svg','mp4','mp3','wav','webm'],
-    code: ['js','ts','py','rs','go','sol','move','sh','bash','html','css'],
-    bin: ['bin','wasm','tar','gz','zip']
-  };
-  for (const [type, exts] of Object.entries(types)) {
-    if (exts.includes(ext)) return type;
-  }
-  return 'bin';
-}
-
-function formatBytes(bytes) {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
-
-function daysUntil(timestamp) {
-  const now = Date.now();
-  const expiry = timestamp;
-  const diff = expiry - now;
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
-}
-
-function expiryClass(days) {
-  if (days <= 3) return 'expiry-danger';
-  if (days <= 14) return 'expiry-warn';
-  return 'expiry-ok';
-}
-
-function truncateHash(hash) {
-  if (!hash) return '';
-  return hash.substring(0, 10) + '...' + hash.substring(hash.length - 6);
-}
-
-async function fetchAccountResources(address) {
-  const net = NETWORKS[currentNetwork];
-  const url = `${net.aptos}/accounts/${address}/resources?limit=999`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Account not found (${res.status})`);
-  return await res.json();
-}
-
-async function fetchAccountEvents(address) {
-  const net = NETWORKS[currentNetwork];
-  const url = `${net.aptos}/accounts/${address}/events?limit=100`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return [];
-    return await res.json();
-  } catch { return []; }
-}
-
-async function fetchAccountTransactions(address) {
-  const net = NETWORKS[currentNetwork];
-  const url = `${net.aptos}/accounts/${address}/transactions?limit=50`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return [];
-    return await res.json();
-  } catch { return []; }
-}
-
-function parseBlobsFromResources(resources) {
-  const blobs = [];
-  for (const res of resources) {
-    if (res.type && res.type.includes('blob')) {
-      try {
-        const data = res.data;
-        if (data && data.blobs) {
-          for (const [name, info] of Object.entries(data.blobs)) {
-            blobs.push({
-              name: name,
-              size: parseInt(info.size || info.content_length || 0),
-              expiry: parseInt(info.expiration_timestamp || info.expiry || 0) / 1000,
-              status: info.status || 'active'
-            });
-          }
-        }
-      } catch {}
-    }
-  }
-  return blobs;
-}
-
-function parseBlobsFromTransactions(txns) {
-  const blobs = [];
-  const seen = new Set();
-  for (const tx of txns) {
-    if (!tx.payload || !tx.payload.function) continue;
-    const fn = tx.payload.function;
-    if (fn.includes('upload') || fn.includes('store') || fn.includes('register_blob') || fn.includes('create_blob')) {
-      const args = tx.payload.arguments || [];
-      const name = args[0] || `blob-${tx.hash?.substring(0,8)}`;
-      if (seen.has(name)) continue;
-      seen.add(name);
-      
-      let size = 0;
-      let expiry = Date.now() + 30 * 24 * 60 * 60 * 1000;
-      
-      if (args[1]) {
-        const parsedSize = parseInt(args[1]);
-        if (!isNaN(parsedSize) && parsedSize > 0 && parsedSize < 1e12) size = parsedSize;
-      }
-      if (args[2]) {
-        const parsedExp = parseInt(args[2]);
-        if (!isNaN(parsedExp) && parsedExp > 1e12) expiry = parsedExp / 1000;
-      }
-      
-      blobs.push({
-        name: typeof name === 'string' ? name : `blob-${tx.hash?.substring(0,8)}`,
-        size: size,
-        expiry: expiry,
-        status: tx.success !== false ? 'active' : 'failed',
-        tx: tx.hash,
-        timestamp: parseInt(tx.timestamp || 0) / 1000,
-        version: tx.version
-      });
-    }
-  }
-  return blobs;
-}
-
-function renderStats(blobs, address) {
-  const totalSize = blobs.reduce((a, b) => a + (b.size || 0), 0);
-  const activeBlobs = blobs.filter(b => b.status === 'active');
-  const expiringBlobs = blobs.filter(b => {
-    const days = daysUntil(b.expiry);
-    return days > 0 && days <= 7;
-  });
-  const avgUploadTime = blobs.length > 0 ? (blobs.reduce((a, b) => a + (b.uploadTime || 0), 0) / blobs.length) : 0;
-  
-  return `
-    <div class="stats">
-      <div class="stat-card accent">
-        <div class="stat-label">Total blobs</div>
-        <div class="stat-value">${blobs.length}</div>
-        <div class="stat-sub">${activeBlobs.length} active</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Total size</div>
-        <div class="stat-value">${formatBytes(totalSize)}</div>
-        <div class="stat-sub">across all blobs</div>
-      </div>
-      <div class="stat-card ${expiringBlobs.length > 0 ? 'amber' : 'green'}">
-        <div class="stat-label">Expiring soon</div>
-        <div class="stat-value">${expiringBlobs.length}</div>
-        <div class="stat-sub">within 7 days</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Network</div>
-        <div class="stat-value" style="font-size:18px">${currentNetwork}</div>
-        <div class="stat-sub"><a href="${NETWORKS[currentNetwork].explorer}/account/${address}" target="_blank" style="color:var(--accent-light);text-decoration:none;font-size:11px">View in explorer ↗</a></div>
-      </div>
-    </div>
-  `;
-}
-
-function renderExpiryChart(blobs) {
-  const buckets = { 'Expired': 0, '< 3 days': 0, '3-7 days': 0, '7-14 days': 0, '14-30 days': 0, '30+ days': 0 };
-  for (const b of blobs) {
-    const d = daysUntil(b.expiry);
-    if (d <= 0) buckets['Expired']++;
-    else if (d <= 3) buckets['< 3 days']++;
-    else if (d <= 7) buckets['3-7 days']++;
-    else if (d <= 14) buckets['7-14 days']++;
-    else if (d <= 30) buckets['14-30 days']++;
-    else buckets['30+ days']++;
-  }
-  
-  const max = Math.max(...Object.values(buckets), 1);
-  const colors = {
-    'Expired': 'bar-red', '< 3 days': 'bar-red', '3-7 days': 'bar-amber',
-    '7-14 days': 'bar-amber', '14-30 days': 'bar-blue', '30+ days': 'bar-green'
-  };
-  
-  let bars = '';
-  for (const [label, count] of Object.entries(buckets)) {
-    const pct = Math.max((count / max) * 100, count > 0 ? 8 : 0);
-    bars += `
-      <div class="chart-bar-row">
-        <div class="chart-label">${label}</div>
-        <div class="chart-bar-bg">
-          <div class="chart-bar-fill ${colors[label]}" style="width:${pct}%">
-            ${count > 0 ? `<span>${count} blob${count > 1 ? 's' : ''}</span>` : ''}
-          </div>
-        </div>
-      </div>
-    `;
-  }
-  
-  return `
-    <div class="section-title"><div class="dot"></div>Expiration timeline</div>
-    <div class="expiry-chart">${bars}</div>
-  `;
-}
-
-function renderBlobsTable(blobs) {
-  if (blobs.length === 0) return '';
-  
-  const sorted = [...blobs].sort((a, b) => (b.timestamp || b.expiry) - (a.timestamp || a.expiry));
-  
-  let rows = '';
-  for (const b of sorted) {
-    const type = getFileType(b.name);
-    const typeClass = `type-${type}`;
-    const days = daysUntil(b.expiry);
-    const expiryText = days <= 0 ? 'Expired' : `${days}d left`;
-    const expClass = expiryClass(days);
-    const txLink = b.tx ? `<a class="blob-tx" href="${NETWORKS[currentNetwork].aptosExplorer.replace('{tx}', b.tx)}" target="_blank">${truncateHash(b.tx)}</a>` : '—';
-    
-    rows += `
-      <tr>
-        <td><span class="blob-name">${b.name}</span></td>
-        <td><span class="blob-type-badge ${typeClass}">${type}</span></td>
-        <td><span class="blob-size">${b.size > 0 ? formatBytes(b.size) : '—'}</span></td>
-        <td><span class="blob-expiry ${expClass}">${expiryText}</span></td>
-        <td>${txLink}</td>
-      </tr>
-    `;
-  }
-  
-  return `
-    <div class="section-title"><div class="dot"></div>Stored blobs</div>
-    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-lg)">
-      <table class="blobs-table">
-        <thead>
-          <tr><th>Name</th><th>Type</th><th>Size</th><th>Expires</th><th>Transaction</th></tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-  `;
-}
-
-function renderTypeBreakdown(blobs) {
-  const types = {};
-  for (const b of blobs) {
-    const t = getFileType(b.name);
-    if (!types[t]) types[t] = { count: 0, size: 0 };
-    types[t].count++;
-    types[t].size += b.size || 0;
-  }
-  
-  const max = Math.max(...Object.values(types).map(t => t.count), 1);
-  let bars = '';
-  const colors = { doc: 'bar-blue', data: 'bar-green', media: 'bar-amber', code: 'bar-blue', bin: 'bar-red' };
-  
-  for (const [type, info] of Object.entries(types).sort((a, b) => b[1].count - a[1].count)) {
-    const pct = Math.max((info.count / max) * 100, 8);
-    bars += `
-      <div class="chart-bar-row">
-        <div class="chart-label">${type}</div>
-        <div class="chart-bar-bg">
-          <div class="chart-bar-fill ${colors[type] || 'bar-blue'}" style="width:${pct}%">
-            <span>${info.count} · ${formatBytes(info.size)}</span>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-  
-  return `
-    <div class="section-title"><div class="dot"></div>Storage by type</div>
-    <div class="expiry-chart">${bars}</div>
-  `;
-}
-
-async function loadAccount() {
-  const input = document.getElementById('address-input');
-  const content = document.getElementById('content');
-  const btn = document.getElementById('search-btn');
-  const address = input.value.trim();
-  
-  if (!address || !address.startsWith('0x')) {
-    content.innerHTML = '<div class="error-msg">Enter a valid Shelby account address starting with 0x</div>';
-    return;
-  }
-  
-  btn.disabled = true;
-  btn.textContent = 'Loading...';
-  content.innerHTML = '<div class="loading"><div class="spinner"></div>Fetching on-chain data...</div>';
-  
-  try {
-    const [resources, transactions] = await Promise.all([
-      fetchAccountResources(address),
-      fetchAccountTransactions(address)
-    ]);
-    
-    let blobs = parseBlobsFromResources(resources);
-    
-    if (blobs.length === 0) {
-      blobs = parseBlobsFromTransactions(transactions);
-    }
-    
-    if (blobs.length === 0 && transactions.length > 0) {
-      for (const tx of transactions) {
-        if (tx.payload && tx.payload.function && 
-            (tx.payload.function.includes(SHELBY_CONTRACT) || tx.payload.function.includes('shelby'))) {
-          const args = tx.payload.arguments || [];
-          blobs.push({
-            name: (args[0] && typeof args[0] === 'string' && args[0].length < 200) ? args[0] : `tx-${tx.hash?.substring(0,8)}`,
-            size: parseInt(args[1]) || 0,
-            expiry: (parseInt(args[2]) || (Date.now() + 30*86400000)*1000) / 1000,
-            status: tx.success !== false ? 'active' : 'failed',
-            tx: tx.hash,
-            timestamp: parseInt(tx.timestamp || 0) / 1000,
-            version: tx.version
-          });
-        }
-      }
-    }
-    
-    if (blobs.length === 0) {
-      content.innerHTML = `
-        ${renderStats([], address)}
-        <div class="empty-state">
-          <h3>No blobs found</h3>
-          <p>This account has ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''} but no Shelby blob data detected.<br>
-          The account may use a different contract interface or blobs may have expired.</p>
-          <p style="margin-top:12px"><a href="${NETWORKS[currentNetwork].explorer}/account/${address}" target="_blank" style="color:var(--accent-light)">Check in Shelby Explorer ↗</a></p>
-        </div>
-      `;
-    } else {
-      content.innerHTML = 
-        renderStats(blobs, address) +
-        renderExpiryChart(blobs) +
-        renderTypeBreakdown(blobs) +
-        renderBlobsTable(blobs);
-    }
-  } catch (err) {
-    content.innerHTML = `<div class="error-msg">Error: ${err.message}<br><small style="color:var(--text-dim)">Make sure the address exists on ${currentNetwork}</small></div>`;
-  }
-  
-  btn.disabled = false;
-  btn.textContent = 'Explore';
-}
-
-document.getElementById('address-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') loadAccount();
-});
+let net='shelbynet';
+const C='0xc63d6a5efb0080a6029403131715bd4971e1149f7cc099aac69bb0069b3ddbf5';
+const N={shelbynet:{a:'https://api.shelbynet.shelby.xyz/v1',e:'https://explorer.shelby.xyz/shelbynet',t:'https://explorer.aptoslabs.com/txn/{t}?network=shelbynet'},testnet:{a:'https://api.testnet.aptoslabs.com/v1',e:'https://explorer.shelby.xyz/testnet',t:'https://explorer.aptoslabs.com/txn/{t}?network=testnet'}};
+function setNet(n,el){net=n;document.querySelectorAll('.net-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active')}
+function ft(n){const e=n.split('.').pop().toLowerCase();const m={doc:['md','txt','pdf','doc','docx'],data:['csv','json','xml','yaml','yml'],media:['jpg','jpeg','png','gif','webp','svg','mp4'],code:['js','ts','py','rs','go','sol','move','sh','html'],bin:['bin','wasm','tar','gz','zip']};for(const[t,x]of Object.entries(m))if(x.includes(e))return t;return'bin'}
+function fb(b){if(!b||b===0)return'—';const k=1024,s=['B','KB','MB','GB'];const i=Math.floor(Math.log(b)/Math.log(k));return parseFloat((b/Math.pow(k,i)).toFixed(1))+' '+s[i]}
+function du(ts){return Math.ceil((ts-Date.now())/864e5)}
+function ec(d){return d<=3?'expiry-danger':d<=14?'expiry-warn':'expiry-ok'}
+function th(h){return h?h.slice(0,10)+'···'+h.slice(-6):''}
+async function fr(a){const r=await fetch(`${N[net].a}/accounts/${a}/resources?limit=999`);if(!r.ok)throw new Error(`Account not found (${r.status})`);return r.json()}
+async function ftx(a){try{const r=await fetch(`${N[net].a}/accounts/${a}/transactions?limit=50`);return r.ok?r.json():[]}catch{return[]}}
+function pb(res,txs){let bl=[];const sn=new Set();for(const r of res){if(r.type&&r.type.includes('blob')){try{const d=r.data;if(d&&d.blobs)for(const[n,i]of Object.entries(d.blobs))bl.push({name:n,size:parseInt(i.size||0),expiry:parseInt(i.expiration_timestamp||0)/1000,status:'active'})}catch{}}}
+if(!bl.length)for(const tx of txs){if(!tx.payload||!tx.payload.function)continue;const fn=tx.payload.function;if(fn.includes('upload')||fn.includes('store')||fn.includes('register_blob')||fn.includes('create_blob')||fn.includes(C)){const a=tx.payload.arguments||[];const nm=typeof a[0]==='string'&&a[0].length<200?a[0]:`tx-${(tx.hash||'').slice(0,8)}`;if(sn.has(nm))continue;sn.add(nm);let sz=0,ex=Date.now()+30*864e5;if(a[1]){const p=parseInt(a[1]);if(!isNaN(p)&&p>0&&p<1e12)sz=p}if(a[2]){const p=parseInt(a[2]);if(!isNaN(p)&&p>1e12)ex=p/1000}bl.push({name:nm,size:sz,expiry:ex,status:tx.success!==false?'active':'failed',tx:tx.hash,timestamp:parseInt(tx.timestamp||0)/1000})}}
+return bl}
+function rs(bl,a){const t=bl.reduce((s,b)=>s+(b.size||0),0),ac=bl.filter(b=>b.status==='active').length,ex=bl.filter(b=>{const d=du(b.expiry);return d>0&&d<=7}).length;
+return`<div class="stats"><div class="stat-card glass glass-glow anim d1"><div class="stat-icon stat-icon-purple">◆</div><div class="stat-label">Total blobs</div><div class="stat-value stat-value-purple">${bl.length}</div><div class="stat-sub">${ac} active on ${net}</div></div><div class="stat-card glass glass-glow anim d2"><div class="stat-icon stat-icon-blue">↑</div><div class="stat-label">Total size</div><div class="stat-value">${fb(t)}</div><div class="stat-sub">across all blobs</div></div><div class="stat-card glass glass-glow anim d3"><div class="stat-icon stat-icon-${ex>0?'amber':'green'}">⏱</div><div class="stat-label">Expiring soon</div><div class="stat-value stat-value-${ex>0?'amber':'green'}">${ex}</div><div class="stat-sub">within 7 days</div></div><div class="stat-card glass glass-glow anim d4"><div class="stat-icon stat-icon-green">◎</div><div class="stat-label">Network</div><div class="stat-value" style="font-size:20px">${net}</div><div class="stat-sub"><a href="${N[net].e}/account/${a}" target="_blank">view in explorer ↗</a></div></div></div>`}
+function re(bl){const bk={'Expired':0,'< 3 days':0,'3-7 days':0,'7-14 days':0,'14-30 days':0,'30+ days':0};for(const b of bl){const d=du(b.expiry);if(d<=0)bk['Expired']++;else if(d<=3)bk['< 3 days']++;else if(d<=7)bk['3-7 days']++;else if(d<=14)bk['7-14 days']++;else if(d<=30)bk['14-30 days']++;else bk['30+ days']++}const mx=Math.max(...Object.values(bk),1);const cl={'Expired':'bar-red','< 3 days':'bar-red','3-7 days':'bar-amber','7-14 days':'bar-amber','14-30 days':'bar-blue','30+ days':'bar-green'};let h='';for(const[l,c]of Object.entries(bk)){const p=Math.max((c/mx)*100,c>0?10:0);h+=`<div class="chart-bar-row"><div class="chart-label">${l}</div><div class="chart-bar-bg"><div class="chart-bar-fill ${cl[l]}" style="width:${p}%">${c>0?`<span>${c} blob${c>1?'s':''}</span>`:''}</div></div></div>`}return`<div class="section-title"><div class="section-dot"></div>Expiration timeline</div><div class="chart-container glass glass-glow">${h}</div>`}
+function rt(bl){const tp={};for(const b of bl){const t=ft(b.name);if(!tp[t])tp[t]={c:0,s:0};tp[t].c++;tp[t].s+=b.size||0}const mx=Math.max(...Object.values(tp).map(t=>t.c),1);const cl={doc:'bar-blue',data:'bar-green',media:'bar-amber',code:'bar-blue',bin:'bar-red'};let h='';for(const[t,i]of Object.entries(tp).sort((a,b)=>b[1].c-a[1].c)){const p=Math.max((i.c/mx)*100,10);h+=`<div class="chart-bar-row"><div class="chart-label">${t}</div><div class="chart-bar-bg"><div class="chart-bar-fill ${cl[t]||'bar-blue'}" style="width:${p}%"><span>${i.c} · ${fb(i.s)}</span></div></div></div>`}return`<div class="section-title"><div class="section-dot"></div>Storage by type</div><div class="chart-container glass glass-glow">${h}</div>`}
+function rtb(bl){if(!bl.length)return'';const s=[...bl].sort((a,b)=>(b.timestamp||b.expiry)-(a.timestamp||a.expiry));let r='';for(const b of s){const t=ft(b.name),d=du(b.expiry),et=d<=0?'Expired':`${d}d left`,tl=b.tx?`<a class="blob-tx" href="${N[net].t.replace('{t}',b.tx)}" target="_blank">${th(b.tx)}</a>`:'—';r+=`<tr><td><span class="blob-name">${b.name}</span></td><td><span class="type-badge type-${t}">${t}</span></td><td><span class="blob-size">${fb(b.size)}</span></td><td><span class="${ec(d)}">${et}</span></td><td>${tl}</td></tr>`}return`<div class="section-title"><div class="section-dot"></div>Stored blobs</div><div class="table-wrap glass glass-glow"><table class="blobs-table"><thead><tr><th>Name</th><th>Type</th><th>Size</th><th>Expires</th><th>Transaction</th></tr></thead><tbody>${r}</tbody></table></div>`}
+async function go(){const i=document.getElementById('addr'),o=document.getElementById('out'),b=document.getElementById('sbtn'),a=i.value.trim();if(!a||!a.startsWith('0x')){o.innerHTML='<div class="error-msg">Enter a valid address starting with 0x</div>';return}b.disabled=true;b.textContent='Loading...';o.innerHTML='<div class="loading"><div class="spinner"></div>Fetching on-chain data...</div>';try{const[res,txs]=await Promise.all([fr(a),ftx(a)]);const bl=pb(res,txs);if(!bl.length)o.innerHTML=rs([],a)+`<div class="empty-state glass glass-glow"><h3>No blobs detected</h3><p>${txs.length} transaction${txs.length!==1?'s':''} found but no Shelby blob data.<br>Check the <a href="${N[net].e}/account/${a}" target="_blank">Shelby Explorer</a> for details.</p></div>`;else o.innerHTML=rs(bl,a)+re(bl)+rt(bl)+rtb(bl)}catch(e){o.innerHTML=`<div class="error-msg">Error: ${e.message}<br><span style="color:var(--text-dim);font-size:12px">Check the address exists on ${net}</span></div>`}b.disabled=false;b.textContent='Explore'}
+document.getElementById('addr').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
 </script>
 </body>
 </html>
